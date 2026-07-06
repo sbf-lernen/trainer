@@ -29,13 +29,13 @@ auch, solange der Browser lokale Bilder lädt.)
   Basisfragen **und** mind. 18 richtigen spezifischen Fragen. Mit
   60-Minuten-Countdown (automatische Abgabe bei Zeitablauf) und Auswertung
   inkl. Review aller falsch beantworteten Fragen.
-- **Navigationsaufgaben (See)**: alle 15 amtlichen Aufgaben à 9 Teilaufgaben
+- **Navigationsaufgaben (See)** *(nur lokal, siehe unten)*: alle 15 amtlichen Aufgaben à 9 Teilaufgaben
   mit den offiziellen Lösungen zum Aufdecken und Selbstbewerten. Die
   Kartenarbeit passiert auf der Übungskarte D49, die man selbst braucht.
   Zur Orientierung lässt sich der betreffende Kartenbereich als eingebettete
   OpenSeaMap anzeigen (benötigt Internet; die D49 selbst ist BSH-Material und
   darf hier nicht eingebettet werden).
-- **Knoten (Praxis)**: die 10 Prüfungsknoten als Lernkarten — Bild ansehen,
+- **Knoten (Praxis)** *(nur lokal)*: die 10 Prüfungsknoten als Lernkarten — Bild ansehen,
   Knoten mit der Leine stecken, Verwendungszweck aufsagen, Lösung aufdecken
   und selbst bewerten. Knotenbilder von Wikimedia Commons (Public Domain bzw.
   CC BY/CC BY-SA, Nachweis jeweils unter dem Bild verlinkt).
@@ -50,6 +50,15 @@ Bilder verraten oft die Lösung und werden darum nicht angezeigt.
 
 **Nicht abgedeckt:** die Manöver der praktischen Prüfung — und das
 tatsächliche Binden der Knoten übt man mit einer Leine in der Hand.
+
+## Öffentlich vs. lokal
+
+Die Module Navigationsaufgaben und Knoten erscheinen nur, wenn der Trainer
+lokal läuft (`localhost` oder direkt als Datei geöffnet) — auf der
+veröffentlichten GitHub-Pages-Seite sind sie ausgeblendet. Damit macht die
+öffentliche Seite keinerlei Anfragen an fremde Server (die OpenSeaMap-Karte
+der Navigationsaufgaben würde sonst beim Öffnen Leaflet vom CDN und
+Kartenkacheln von OpenStreetMap/OpenSeaMap laden).
 
 ## Weitergeben
 

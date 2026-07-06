@@ -190,6 +190,9 @@ function imgs(list) {
 const app = document.getElementById("app");
 let state = {};
 
+// Navigationsaufgaben & Knoten nur lokal (localhost / Datei), nicht auf der öffentlichen Seite
+let LOCAL = ["localhost", "127.0.0.1", ""].includes(location.hostname);
+
 function go(screen, opts) { state = Object.assign({ screen }, opts); render(); }
 
 function render() {
@@ -228,10 +231,10 @@ function renderHome() {
   const knotsDone = KNOTEN.filter(k => (store.q[k.id] || {}).box >= 3).length;
   app.innerHTML = todayLine + rows + `
     <div class="card">
-      <div class="row">
+      ${LOCAL ? `<div class="row">
         <button onclick="go('navList')">🧭 Navigationsaufgaben <span class="meta">${navDone}/${SBF_DATA.nav.length}</span></button>
         <button onclick="startKnots()">🪢 Knoten <span class="meta">${knotsDone}/${KNOTEN.length}</span></button>
-      </div>
+      </div>` : ""}
       <div class="row" style="justify-content:space-between;margin-top:10px">
         <button class="ghost" onclick="go('stats')">📊 Statistik</button>
         <button class="ghost" onclick="resetAll()">Fortschritt zurücksetzen</button>
@@ -239,8 +242,9 @@ function renderHome() {
       <p class="meta">Quelle: amtlicher Fragen- und Antwortenkatalog auf
       <a href="https://www.elwis.de/DE/Sportschifffahrt/Sportbootfuehrerscheine/" target="_blank">elwis.de</a>.
       Prüfungsbogen: 30 Fragen (7 Basis + 23 spezifisch), bestanden mit mind. 5 richtigen Basisfragen
-      und mind. 18 richtigen spezifischen Fragen. Zur See-Prüfung gehört außerdem eine der
-      15 Navigationsaufgaben (siehe oben). Die praktische Prüfung deckt dieses Tool nicht ab.</p>
+      und mind. 18 richtigen spezifischen Fragen. Zur See-Prüfung gehört außerdem eine
+      Navigationsaufgabe (Kartenarbeit). Die praktische Prüfung deckt dieses Tool nicht ab.
+      Kein Tracking, keine Cookies — der Lernfortschritt bleibt im Browser auf diesem Gerät.</p>
     </div>`;
 }
 function resetAll() {
@@ -652,8 +656,8 @@ function renderStats() {
     </div>`;
   }).join("");
   const navQs = SBF_DATA.nav.flatMap(a => a.tasks.map((_, i) => ({ id: `V${a.n}.${i}` })));
-  const navHtml = `<div class="card"><h2>Navigationsaufgaben</h2>${partBar("Teilaufgaben", navQs)}</div>
-    <div class="card"><h2>Knoten</h2>${partBar("Verwendungszwecke", KNOTEN)}</div>`;
+  const navHtml = LOCAL ? `<div class="card"><h2>Navigationsaufgaben</h2>${partBar("Teilaufgaben", navQs)}</div>
+    <div class="card"><h2>Knoten</h2>${partBar("Verwendungszwecke", KNOTEN)}</div>` : "";
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
