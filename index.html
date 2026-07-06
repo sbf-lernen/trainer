@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SBF Trainer — See &amp; Binnen</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #ffffff; --text: #1a2530; --muted: #5f7285;
+    --accent: #0b6bcb; --accent-soft: #e3effb;
+    --ok: #1a7f37; --ok-soft: #e6f4ea; --err: #c62828; --err-soft: #fdecea;
+    --border: #d8dfe6; --shadow: 0 1px 3px rgba(20,40,60,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10161c; --card: #1a232c; --text: #e8eef4; --muted: #93a4b5;
+      --accent: #4d9fef; --accent-soft: #16324e;
+      --ok: #4caf6d; --ok-soft: #14331e; --err: #ef6b62; --err-soft: #3d1a17;
+      --border: #2c3947; --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+    img.qimg { background: #fff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.45; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 16px 16px 60px; }
+  header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  header h1 { font-size: 1.3rem; margin: 0; cursor: pointer; }
+  header .sub { color: var(--muted); font-size: .85rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+          padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);
+           background: var(--card); color: var(--text); padding: 10px 14px; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.ghost { border: none; background: none; color: var(--accent); padding: 6px 8px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .seg { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; padding: 8px 12px; font-size: .9rem; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem;
+          background: var(--accent-soft); color: var(--accent); }
+  .qtext { font-size: 1.05rem; font-weight: 600; margin: 6px 0 12px; }
+  img.qimg { max-width: 100%; height: auto; border-radius: 6px; padding: 6px; margin: 4px 6px 8px 0;
+             border: 1px solid var(--border); vertical-align: middle; }
+  .answers { display: flex; flex-direction: column; gap: 8px; }
+  .ans { text-align: left; padding: 12px 14px; border-radius: 10px; width: 100%;
+         display: flex; gap: 10px; align-items: flex-start; }
+  .ans .letter { font-weight: 700; color: var(--muted); }
+  .ans.correct { background: var(--ok-soft); border-color: var(--ok); }
+  .ans.correct .letter { color: var(--ok); }
+  .ans.wrong { background: var(--err-soft); border-color: var(--err); }
+  .ans.wrong .letter { color: var(--err); }
+  .ans.chosen { outline: 2px solid var(--accent); }
+  .ans:disabled { cursor: default; opacity: 1; }
+  .meta { color: var(--muted); font-size: .82rem; }
+  .bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; margin: 6px 0; }
+  .bar > div { height: 100%; background: var(--accent); }
+  .bar > div.ok { background: var(--ok); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 6px; }
+  .grid button { padding: 6px 0; font-size: .8rem; border-radius: 8px; }
+  .grid button.done { background: var(--accent-soft); border-color: var(--accent); }
+  .grid button.cur { background: var(--accent); color: #fff; }
+  .big { font-size: 1.6rem; font-weight: 700; }
+  .ok-text { color: var(--ok); } .err-text { color: var(--err); }
+  .footer-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; }
+  label.opt { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; }
+  select { font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+           background: var(--card); color: var(--text); }
+  .statrow { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: .85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 onclick="go('home')">⚓ SBF Trainer</h1>
+    <span class="sub">Amtlicher Fragenkatalog (ELWIS, Stand Aug. 2023)</span>
+  </header>
+  <div id="app"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+
+// ---------- Kataloge ----------
+const CATALOGS = {
+  see:    { name: "SBF See",           basis: SBF_DATA.basis, spec: SBF_DATA.see,    examSpec: 23 },
+  binnen: { name: "SBF Binnen",        basis: SBF_DATA.basis, spec: SBF_DATA.binnen, examSpec: 23 },
+  segeln: { name: "Segeln (Binnen)",   basis: [],             spec: SBF_DATA.segeln, examSpec: null },
+};
+
+// ---------- Persistenz ----------
+const LS_KEY = "sbf-trainer-v1";
+let store = { q: {}, exams: [] };
+try { store = Object.assign(store, JSON.parse(localStorage.getItem(LS_KEY) || "{}")); } catch (e) {}
+function save() { localStorage.setItem(LS_KEY, JSON.stringify(store)); }
+function qstat(id) { return store.q[id] || (store.q[id] = { box: 0, right: 0, wrong: 0 }); }
+
+// ---------- Helpers ----------
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function sample(arr, n) { return shuffle(arr).slice(0, n); }
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function imgs(list) {
+  return (list || []).map(f => {
+    const src = typeof IMG_DATA !== "undefined" ? IMG_DATA[f] : "images/" + f;
+    return `<img class="qimg" src="${src}" alt="Abbildung">`;
+  }).join("");
+}
+function questionsOf(cat, part) {
+  const c = CATALOGS[cat];
+  if (part === "basis") return c.basis;
+  if (part === "spec") return c.spec;
+  return c.basis.concat(c.spec);
+}
+
+const app = document.getElementById("app");
+let state = {};
+
+function go(screen, opts) { state = Object.assign({ screen }, opts); render(); }
+
+function render() {
+  window.scrollTo(0, 0);
+  ({ home: renderHome, learn: renderLearn, exam: renderExam,
+     examResult: renderExamResult, stats: renderStats }[state.screen] || renderHome)();
+}
+
+// ---------- Start ----------
+function renderHome() {
+  const rows = Object.entries(CATALOGS).map(([key, c]) => {
+    const all = questionsOf(key, "all");
+    const seen = all.filter(q => { const s = store.q[q.id]; return s && (s.right + s.wrong) > 0; }).length;
+    const learned = all.filter(q => (store.q[q.id] || {}).box >= 3).length;
+    return `<div class="card">
+      <h2>${c.name} <span class="pill">${all.length} Fragen</span></h2>
+      <div class="bar"><div class="ok" style="width:${(100 * learned / all.length).toFixed(1)}%"></div></div>
+      <div class="meta">${learned} sicher · ${seen} gesehen</div>
+      <div class="row" style="margin-top:10px">
+        <button class="primary" onclick="startLearn('${key}')">Lernen</button>
+        ${c.examSpec ? `<button onclick="startExam('${key}')">Prüfungssimulation</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+  app.innerHTML = rows + `
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <button class="ghost" onclick="go('stats')">📊 Statistik</button>
+        <button class="ghost" onclick="resetAll()">Fortschritt zurücksetzen</button>
+      </div>
+      <p class="meta">Quelle: amtlicher Fragen- und Antwortenkatalog auf
+      <a href="https://www.elwis.de/DE/Sportschifffahrt/Sportbootfuehrerscheine/" target="_blank">elwis.de</a>.
+      Prüfungsbogen: 30 Fragen (7 Basis + 23 spezifisch), bestanden mit mind. 5 richtigen Basisfragen
+      und mind. 18 richtigen spezifischen Fragen. Die Navigationsaufgaben (See) und die praktische
+      Prüfung deckt dieses Tool nicht ab.</p>
+    </div>`;
+}
+function resetAll() {
+  if (confirm("Gesamten Lernfortschritt löschen?")) { store = { q: {}, exams: [] }; save(); render(); }
+}
+
+// ---------- Lernmodus ----------
+function startLearn(cat) {
+  const c = CATALOGS[cat];
+  app.innerHTML = `<div class="card">
+    <h2>${c.name} — Lernen</h2>
+    <div style="margin:10px 0">
+      <div class="meta" style="margin-bottom:4px">Fragen</div>
+      <div class="seg" id="part">
+        ${c.basis.length ? `<button data-v="all" class="on">Alle</button>
+        <button data-v="basis">Basisfragen</button>
+        <button data-v="spec">Spezifische</button>` : `<button data-v="spec" class="on">Alle</button>`}
+      </div>
+    </div>
+    <div style="margin:10px 0">
+      <div class="meta" style="margin-bottom:4px">Reihenfolge</div>
+      <div class="seg" id="order">
+        <button data-v="weak" class="on">Schwächste zuerst</button>
+        <button data-v="random">Zufällig</button>
+        <button data-v="seq">Der Reihe nach</button>
+      </div>
+    </div>
+    <button class="primary" id="golearn">Los geht's</button>
+  </div>`;
+  for (const segId of ["part", "order"]) {
+    document.getElementById(segId).addEventListener("click", e => {
+      if (e.target.tagName !== "BUTTON") return;
+      e.target.parentNode.querySelectorAll("button").forEach(b => b.classList.remove("on"));
+      e.target.classList.add("on");
+    });
+  }
+  document.getElementById("golearn").onclick = () => {
+    const part = document.querySelector("#part .on").dataset.v;
+    const order = document.querySelector("#order .on").dataset.v;
+    let qs = questionsOf(cat, part);
+    if (order === "random") qs = shuffle(qs);
+    else if (order === "weak") {
+      qs = qs.slice().sort((a, b) => {
+        const sa = store.q[a.id] || { box: 0, right: 0, wrong: 0 };
+        const sb = store.q[b.id] || { box: 0, right: 0, wrong: 0 };
+        return (sa.box - sb.box) || (sb.wrong - sa.wrong) || (Math.random() - 0.5);
+      });
+    }
+    go("learn", { cat, queue: qs, idx: 0, answered: null, order: null, nRight: 0, nWrong: 0 });
+  };
+}
+
+function renderLearn() {
+  const q = state.queue[state.idx];
+  if (!q) {
+    app.innerHTML = `<div class="card"><h2>Runde geschafft! 🎉</h2>
+      <p><span class="ok-text">${state.nRight} richtig</span> · <span class="err-text">${state.nWrong} falsch</span></p>
+      <div class="row"><button class="primary" onclick="startLearn('${state.cat}')">Neue Runde</button>
+      <button onclick="go('home')">Zur Übersicht</button></div></div>`;
+    return;
+  }
+  if (!state.order) state.order = shuffle([0, 1, 2, 3]);
+  const s = qstat(q.id);
+  const done = state.answered !== null;
+  const answersHtml = state.order.map((orig, i) => {
+    let cls = "ans";
+    if (done) {
+      if (orig === 0) cls += " correct";
+      else if (i === state.answered) cls += " wrong";
+      if (i === state.answered) cls += " chosen";
+    }
+    const a = q.a[orig];
+    return `<button class="${cls}" ${done ? "disabled" : ""} onclick="answerLearn(${i})">
+      <span class="letter">${"abcd"[i]}</span><span>${esc(a.t)}${imgs(a.img)}</span></button>`;
+  }).join("");
+  app.innerHTML = `<div class="card">
+    <div class="row" style="justify-content:space-between">
+      <span class="pill">${CATALOGS[state.cat].name} · Frage ${q.n}</span>
+      <span class="meta">${state.idx + 1} / ${state.queue.length} ·
+        <span class="ok-text">${state.nRight}✓</span> <span class="err-text">${state.nWrong}✗</span></span>
+    </div>
+    <div class="qtext">${esc(q.q)}</div>
+    ${imgs(q.img)}
+    <div class="answers">${answersHtml}</div>
+    ${done ? `<div class="meta" style="margin-top:8px">Bisher: ${s.right}× richtig, ${s.wrong}× falsch</div>` : ""}
+    <div class="footer-nav">
+      <button class="ghost" onclick="go('home')">Abbrechen</button>
+      ${done ? `<button class="primary" onclick="nextLearn()">Weiter →</button>` : ""}
+    </div>
+  </div>`;
+}
+function answerLearn(i) {
+  const q = state.queue[state.idx];
+  const s = qstat(q.id);
+  const correct = state.order[i] === 0;
+  if (correct) { s.right++; s.box = Math.min(5, s.box + 1); state.nRight++; }
+  else { s.wrong++; s.box = 0; state.nWrong++; }
+  save();
+  state.answered = i;
+  render();
+}
+function nextLearn() { state.idx++; state.answered = null; state.order = null; render(); }
+
+// ---------- Prüfungsmodus ----------
+function startExam(cat) {
+  const c = CATALOGS[cat];
+  const qs = sample(c.basis, 7).concat(sample(c.spec, c.examSpec));
+  const sheet = qs.map(q => ({ q, order: shuffle([0, 1, 2, 3]), picked: null }));
+  go("exam", { cat, sheet, idx: 0 });
+}
+function renderExam() {
+  const item = state.sheet[state.idx];
+  const q = item.q;
+  const answersHtml = item.order.map((orig, i) => {
+    const cls = "ans" + (item.picked === i ? " chosen" : "");
+    const a = q.a[orig];
+    return `<button class="${cls}" onclick="pickExam(${i})">
+      <span class="letter">${"abcd"[i]}</span><span>${esc(a.t)}${imgs(a.img)}</span></button>`;
+  }).join("");
+  const nav = state.sheet.map((it, i) =>
+    `<button class="${it.picked !== null ? "done" : ""} ${i === state.idx ? "cur" : ""}"
+      onclick="jumpExam(${i})">${i + 1}</button>`).join("");
+  const unanswered = state.sheet.filter(it => it.picked === null).length;
+  app.innerHTML = `<div class="card">
+    <div class="row" style="justify-content:space-between">
+      <span class="pill">${CATALOGS[state.cat].name} · Prüfungsbogen</span>
+      <span class="meta">${state.idx < 7 ? "Basisfrage" : "Spezifische Frage"} · Frage ${state.idx + 1} / 30</span>
+    </div>
+    <div class="qtext">${esc(q.q)}</div>
+    ${imgs(q.img)}
+    <div class="answers">${answersHtml}</div>
+    <div class="footer-nav">
+      <button onclick="stepExam(-1)" ${state.idx === 0 ? "disabled" : ""}>← Zurück</button>
+      ${state.idx < 29
+        ? `<button class="primary" onclick="stepExam(1)">Weiter →</button>`
+        : `<button class="primary" onclick="finishExam()">Abgeben</button>`}
+    </div>
+  </div>
+  <div class="card">
+    <div class="meta" style="margin-bottom:6px">${unanswered ? unanswered + " Fragen offen" : "Alle Fragen beantwortet"}</div>
+    <div class="grid">${nav}</div>
+    <div class="footer-nav">
+      <button class="ghost" onclick="if(confirm('Prüfung abbrechen?'))go('home')">Abbrechen</button>
+      <button onclick="finishExam()">Jetzt abgeben</button>
+    </div>
+  </div>`;
+}
+function pickExam(i) {
+  state.sheet[state.idx].picked = i;
+  if (state.idx < 29) state.idx++;
+  render();
+}
+function jumpExam(i) { state.idx = i; render(); }
+function stepExam(d) { state.idx = Math.max(0, Math.min(29, state.idx + d)); render(); }
+function finishExam() {
+  const open = state.sheet.filter(it => it.picked === null).length;
+  if (open && !confirm(`Noch ${open} Fragen unbeantwortet — trotzdem abgeben?`)) return;
+  let basisOk = 0, specOk = 0;
+  state.sheet.forEach((it, i) => {
+    const correct = it.picked !== null && it.order[it.picked] === 0;
+    if (correct) { if (i < 7) basisOk++; else specOk++; }
+    const s = qstat(it.q.id);
+    if (correct) { s.right++; s.box = Math.min(5, s.box + 1); } else { s.wrong++; s.box = 0; }
+  });
+  const passed = basisOk >= 5 && specOk >= 18;
+  store.exams.push({ cat: state.cat, basisOk, specOk, passed, ts: Date.now() });
+  save();
+  go("examResult", { cat: state.cat, sheet: state.sheet, basisOk, specOk, passed });
+}
+function renderExamResult() {
+  const wrongs = state.sheet.filter(it => !(it.picked !== null && it.order[it.picked] === 0));
+  const wrongHtml = wrongs.map(it => {
+    const pickedTxt = it.picked === null ? "— nicht beantwortet —" : it.q.a[it.order[it.picked]].t;
+    return `<div class="card">
+      <div class="meta">Frage ${it.q.n}</div>
+      <div class="qtext">${esc(it.q.q)}</div>${imgs(it.q.img)}
+      <div class="small err-text">Deine Antwort: ${esc(pickedTxt)}${it.picked !== null ? imgs(it.q.a[it.order[it.picked]].img) : ""}</div>
+      <div class="small ok-text">Richtig: ${esc(it.q.a[0].t)}${imgs(it.q.a[0].img)}</div>
+    </div>`;
+  }).join("");
+  app.innerHTML = `<div class="card" style="text-align:center">
+    <div class="big ${state.passed ? "ok-text" : "err-text"}">${state.passed ? "Bestanden ✔" : "Nicht bestanden ✘"}</div>
+    <p>Basisfragen: <b>${state.basisOk} / 7</b> (mind. 5) · Spezifische: <b>${state.specOk} / 23</b> (mind. 18)</p>
+    <div class="row" style="justify-content:center">
+      <button class="primary" onclick="startExam('${state.cat}')">Neuer Bogen</button>
+      <button onclick="go('home')">Zur Übersicht</button>
+    </div>
+  </div>
+  ${wrongs.length ? `<h2 style="margin:16px 4px 8px">Falsch beantwortet (${wrongs.length})</h2>` + wrongHtml : ""}`;
+}
+
+// ---------- Statistik ----------
+function renderStats() {
+  const catHtml = Object.entries(CATALOGS).map(([key, c]) => {
+    const all = questionsOf(key, "all");
+    const boxes = [0, 0, 0, 0, 0, 0];
+    all.forEach(q => boxes[(store.q[q.id] || { box: 0 }).box]++);
+    const learned = boxes.slice(3).reduce((a, b) => a + b, 0);
+    const hard = all
+      .filter(q => (store.q[q.id] || {}).wrong >= 2)
+      .sort((a, b) => store.q[b.id].wrong - store.q[a.id].wrong).slice(0, 5);
+    return `<div class="card">
+      <h2>${c.name}</h2>
+      <div class="bar"><div class="ok" style="width:${(100 * learned / all.length).toFixed(1)}%"></div></div>
+      <div class="meta">${learned} von ${all.length} sicher (3× in Folge richtig)</div>
+      ${hard.length ? `<div class="small" style="margin-top:8px"><b>Problemfragen:</b>
+        ${hard.map(q => `<div class="statrow"><span>Frage ${q.n}: ${esc(q.q.slice(0, 60))}…</span>
+          <span class="err-text">${store.q[q.id].wrong}✗</span></div>`).join("")}</div>` : ""}
+    </div>`;
+  }).join("");
+  const exams = (store.exams || []).slice(-10).reverse().map(e =>
+    `<div class="statrow"><span>${CATALOGS[e.cat].name} · ${new Date(e.ts).toLocaleDateString("de-DE")}</span>
+     <span class="${e.passed ? "ok-text" : "err-text"}">${e.basisOk + e.specOk}/30 ${e.passed ? "bestanden" : "durchgefallen"}</span></div>`).join("");
+  app.innerHTML = catHtml + `<div class="card"><h2>Letzte Prüfungsbögen</h2>
+    ${exams || '<span class="muted">Noch keine Prüfung simuliert.</span>'}</div>
+    <button class="ghost" onclick="go('home')">← Zurück</button>`;
+}
+
+render();
+</script>
+</body>
+</html>
