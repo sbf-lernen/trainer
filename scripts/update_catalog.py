@@ -17,10 +17,9 @@ PAGES = {
     "basis": f"{BASE}/Fragenkatalog-See/Basisfragen/Basisfragen-node.html",
     "see": f"{BASE}/Fragenkatalog-See/Spezifische-Fragen-See/Spezifische-Fragen-See-node.html",
     "binnen": f"{BASE}/Fragenkatalog-Binnen/Spezifische-Fragen-Binnen/Spezifische-Fragen-Binnen-node.html",
-    "segeln": f"{BASE}/Fragenkatalog-Binnen/Spezifische-Fragen-Segeln/Spezifische-Fragen-Segeln-node.html",
 }
-PREFIX = {"basis": "B", "see": "S", "binnen": "N", "segeln": "G"}
-EXPECTED = {"basis": 72, "see": 213, "binnen": 181, "segeln": 47}
+PREFIX = {"basis": "B", "see": "S", "binnen": "N"}
+EXPECTED = {"basis": 72, "see": 213, "binnen": 181}
 
 
 def fetch(url):
@@ -131,6 +130,77 @@ def parse_questions(html):
     return questions
 
 
+def cell_text(cell_html):
+    t = re.sub(r"<br\s*/?>", "\n", cell_html)
+    t = re.sub(r"<[^>]+>", "", t)
+    t = html_unescape(t)
+    lines = [re.sub(r"[ \t]+", " ", ln).strip() for ln in t.split("\n")]
+    return "\n".join(ln for ln in lines if ln).strip()
+
+
+def html_unescape(s):
+    import html as h
+    return h.unescape(s)
+
+
+def parse_nav_page(html, n):
+    content = html[html.find('id="content"'):]
+    content = content[:content.find("Stand:")]
+    tbl_start = content.find("<table")
+    tbl_end = content.find("</table>")
+    intro_html = content[:tbl_start]
+    intro = [cell_text(p) for p in re.findall(r"<p[^>]*>(.*?)</p>", intro_html, re.S)]
+    intro = "\n\n".join(p for p in intro if p)
+    tasks = []
+    for row in re.findall(r"<tr[^>]*>(.*?)</tr>", content[tbl_start:tbl_end], re.S):
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)
+        if len(cells) == 3:
+            tasks.append({"q": cell_text(cells[1]), "s": cell_text(cells[2])})
+    note_html = content[tbl_end:]
+    notes = [cell_text(p) for p in re.findall(r"<p[^>]*>(.*?)</p>", note_html, re.S)]
+    note = "\n\n".join(p for p in notes if p)
+    item = {"n": n, "intro": intro, "tasks": tasks}
+    if note:
+        item["note"] = note
+    return item
+
+
+COORD_RE = re.compile(r"(?:([NE])\s*)?(\d{1,3})\s*°\s*(\d{1,2}(?:[.,]\d+)?)\s*'\s*(?:([NE]))?")
+
+
+def nav_bbox(item):
+    """Grober Kartenbereich der Aufgabe aus allen Koordinaten in Text und Lösungen."""
+    text = item["intro"] + " " + " ".join(t["q"] + " " + t["s"] for t in item["tasks"])
+    lats, lons = [], []
+    for m in COORD_RE.finditer(text):
+        axis = m.group(1) or m.group(4)
+        if not axis:
+            continue
+        val = int(m.group(2)) + float(m.group(3).replace(",", ".")) / 60
+        (lats if axis == "N" else lons).append(round(val, 4))
+    if lats and lons:
+        return [min(lats), min(lons), max(lats), max(lons)]
+    return None
+
+
+def fetch_nav():
+    nav = []
+    for i in range(1, 16):
+        url = (f"{BASE}/Fragenkatalog-See/Navigationsaufgaben/"
+               f"Navigationsaufgabe-{i:02d}/Navigationsaufgabe-{i:02d}-node.html")
+        print(f"lade Navigationsaufgabe {i} …")
+        item = parse_nav_page(fetch(url).decode("utf-8"), i)
+        if len(item["tasks"]) != 9:
+            print(f"  WARNUNG: {len(item['tasks'])} statt 9 Teilaufgaben")
+        box = nav_bbox(item)
+        if box:
+            item["box"] = box
+        else:
+            print("  WARNUNG: keine Koordinaten für Kartenbereich gefunden")
+        nav.append(item)
+    return nav
+
+
 def image_filename(url):
     path = url.split("?")[0]
     base = re.sub(r"[^A-Za-z0-9._-]", "_", "/".join(path.split("/")[-2:]))
@@ -175,6 +245,8 @@ def main():
             print("  ABWEICHUNG von erwarteter Anzahl — Katalog geändert oder Parser kaputt?")
             ok = False
         data[key] = items
+
+    data["nav"] = fetch_nav()
 
     print(f"lade {len(img_urls)} Bilder …")
     for url, fn in img_urls.items():
