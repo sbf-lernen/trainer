@@ -97,40 +97,6 @@ const EXAMS = {
   binnen: { name: "SBF Binnen", basis: SBF_DATA.basis, spec: SBF_DATA.binnen },
 };
 
-// Prüfungsknoten (praktische Prüfung); Bilder: Wikimedia Commons
-const KNOTEN = [
-  { id: "K0", name: "Achtknoten", img: "knoten-achtknoten.svg",
-    zweck: "Stopperknoten am Ende einer Leine — verhindert das Ausrauschen aus Block, Öse oder Klemme.",
-    credit: ["Sawims", "Public Domain", "Achtknoop.svg"] },
-  { id: "K1", name: "Kreuzknoten", img: "knoten-kreuzknoten.jpg",
-    zweck: "Verbinden zweier gleich starker Leinen.",
-    credit: ["Jiver", "Public Domain", "Knoten_Kreuzknoten.jpg"] },
-  { id: "K2", name: "Palstek", img: "knoten-palstek.svg",
-    zweck: "Bildet ein festes Auge, das sich nicht zuzieht — z.B. zum Festmachen an Poller oder Ring, als Rettungsschlinge.",
-    credit: ["Lucasbosch", "CC BY 3.0", "Bowline.svg"] },
-  { id: "K3", name: "Webeleinstek", img: "knoten-webeleinstek.svg",
-    zweck: "Festmachen einer Leine an Stange, Reling oder Pfahl — z.B. Fender an der Reling.",
-    credit: ["Luftpirat", "CC BY-SA 3.0", "Barb._Webeleinenstek01.svg"] },
-  { id: "K4", name: "Webeleinstek auf Slip", img: "knoten-webeleinstek.svg",
-    zweck: "Wie der Webeleinstek, aber durch die auf Slip gelegte letzte Bucht schnell lösbar — üblich für Fender. (Abbildung ohne Slip — die letzte Bucht als Schlaufe durchstecken.)",
-    credit: ["Luftpirat", "CC BY-SA 3.0", "Barb._Webeleinenstek01.svg"] },
-  { id: "K5", name: "Stopperstek", img: "knoten-stopperstek.jpg",
-    zweck: "Abstoppen und Übernehmen einer unter Zug stehenden Leine — z.B. um eine Anker- oder Schleppleine zu entlasten.",
-    credit: ["Markus Bärlocher", "Public Domain", "Stopperstek.jpg"] },
-  { id: "K6", name: "Einfacher Schotstek", img: "knoten-schotstek.svg",
-    zweck: "Verbinden zweier ungleich starker Leinen.",
-    credit: ["Sawims", "Public Domain", "Schootsteek.svg"] },
-  { id: "K7", name: "Doppelter Schotstek", img: "knoten-doppelter-schotstek.svg",
-    zweck: "Verbinden zweier ungleich starker Leinen — hält sicherer als der einfache Schotstek, besonders bei glattem oder nassem Tauwerk.",
-    credit: ["Lucasbosch", "CC BY-SA 3.0", "Double_sheet_bend.svg"] },
-  { id: "K8", name: "Rundtörn mit zwei halben Schlägen", img: "knoten-rundtoern.png",
-    zweck: "Festmachen einer Leine an Ring, Poller oder Pfahl — lässt sich auch unter Zug belegen und lösen.",
-    credit: ["Wikimedia Commons", "CC BY-SA 3.0", "Round_turn_and_two_half_hitches.png"] },
-  { id: "K9", name: "Belegen einer Klampe mit Kopfschlag", img: "knoten-kopfschlag.jpg",
-    zweck: "Festmachen einer Leine (z.B. Festmacher oder Fall) auf einer Klampe; der Kopfschlag sichert die Leine.",
-    credit: ["Schorschi2", "Public Domain", "Kopfschlag_richtig_Pfeil.jpg"] },
-];
-
 // ---------- Persistenz ----------
 const LS_KEY = "sbf-trainer-v1";
 let store = { q: {}, exams: [] };
@@ -187,7 +153,7 @@ function imgs(list) {
 const app = document.getElementById("app");
 let state = {};
 
-// Navigationsaufgaben & Knoten nur lokal (localhost / Datei), nicht auf der öffentlichen Seite
+// Navigationsaufgaben nur lokal (localhost / Datei), nicht auf der öffentlichen Seite
 let LOCAL = ["localhost", "127.0.0.1", ""].includes(location.hostname);
 
 function go(screen, opts) { state = Object.assign({ screen }, opts); render(); }
@@ -196,7 +162,7 @@ function render() {
   window.scrollTo(0, 0);
   ({ home: renderHome, learn: renderLearn, exam: renderExam,
      examResult: renderExamResult, stats: renderStats,
-     navList: renderNavList, nav: renderNav, knots: renderKnots }[state.screen] || renderHome)();
+     navList: renderNavList, nav: renderNav }[state.screen] || renderHome)();
 }
 
 // ---------- Start ----------
@@ -225,12 +191,10 @@ function renderHome() {
   }).join("");
   const navDone = SBF_DATA.nav.filter(a =>
     a.tasks.every((_, i) => (store.q[`V${a.n}.${i}`] || {}).box >= 3)).length;
-  const knotsDone = KNOTEN.filter(k => (store.q[k.id] || {}).box >= 3).length;
   app.innerHTML = todayLine + rows + `
     <div class="card">
       ${LOCAL ? `<div class="row">
         <button onclick="go('navList')">🧭 Navigationsaufgaben <span class="meta">${navDone}/${SBF_DATA.nav.length}</span></button>
-        <button onclick="startKnots()">🪢 Knoten <span class="meta">${knotsDone}/${KNOTEN.length}</span></button>
       </div>` : ""}
       <div class="row" style="justify-content:space-between;margin-top:10px">
         <button class="ghost" onclick="go('stats')">📊 Statistik</button>
@@ -462,58 +426,6 @@ function navGrade(ok) {
 }
 function navNext() { state.idx++; state.revealed = false; render(); }
 
-// ---------- Knoten ----------
-function startKnots() {
-  go("knots", { queue: shuffle(KNOTEN), idx: 0, revealed: false, nRight: 0, nWrong: 0 });
-}
-function renderKnots() {
-  const k = state.queue[state.idx];
-  if (!k) {
-    app.innerHTML = `<div class="card"><h2>Alle Knoten durch! 🎉</h2>
-      <p><span class="ok-text">${state.nRight} richtig</span> · <span class="err-text">${state.nWrong} falsch</span> (Selbsteinschätzung)</p>
-      <div class="row"><button class="primary" onclick="startKnots()">Neue Runde</button>
-      <button onclick="go('home')">Zur Übersicht</button></div></div>`;
-    return;
-  }
-  const s = store.q[k.id];
-  app.innerHTML = `<div class="card">
-    <div class="row" style="justify-content:space-between">
-      <span class="pill">Knoten</span>
-      <span class="meta">${state.idx + 1} / ${state.queue.length}</span>
-    </div>
-    <div class="qtext">${esc(k.name)}</div>
-    <img class="qimg" src="images/${k.img}" alt="${esc(k.name)}" style="max-height:260px">
-    <div class="meta" style="margin-bottom:10px">Bild: ${esc(k.credit[0])} · ${esc(k.credit[1])} ·
-      <a href="https://commons.wikimedia.org/wiki/File:${k.credit[2]}" target="_blank" rel="noopener">Wikimedia Commons</a></div>
-    <p class="small muted">Knoten mit der Leine stecken und den Verwendungszweck laut aufsagen — beides wird in der Praxisprüfung verlangt.</p>
-    ${state.revealed ? `
-      <div class="card" style="background:var(--ok-soft);border-color:var(--ok)">
-        <div class="small muted">Verwendungszweck</div>
-        <div><b>${esc(k.zweck)}</b></div>
-      </div>
-      <div class="row">Gewusst (Zweck + Knoten gesteckt)?
-        <button onclick="knotGrade(true)" style="border-color:var(--ok)">✓ Ja</button>
-        <button onclick="knotGrade(false)" style="border-color:var(--err)">✗ Nein</button>
-      </div>
-      ${s && (s.right + s.wrong) > 0 ? `<div class="meta" style="margin-top:8px">Bisher: ${s.right}× richtig, ${s.wrong}× falsch</div>` : ""}`
-    : `<button class="primary" onclick="state.revealed = true; render()">Verwendungszweck aufdecken</button>`}
-    <div class="footer-nav">
-      <button class="ghost" onclick="go('home')">Abbrechen</button>
-      ${state.revealed ? `<button class="ghost" onclick="state.idx++; state.revealed = false; render()">Überspringen →</button>` : ""}
-    </div>
-  </div>`;
-}
-function knotGrade(ok) {
-  const s = qstat(state.queue[state.idx].id);
-  if (ok) { s.right++; s.box = Math.min(5, s.box + 1); state.nRight++; }
-  else { s.wrong++; s.box = 0; state.nWrong++; }
-  bump(ok);
-  save();
-  state.idx++;
-  state.revealed = false;
-  render();
-}
-
 // ---------- Prüfungsmodus ----------
 const EXAM_MINUTES = 60;
 let clockInterval = null;
@@ -653,8 +565,7 @@ function renderStats() {
     </div>`;
   }).join("");
   const navQs = SBF_DATA.nav.flatMap(a => a.tasks.map((_, i) => ({ id: `V${a.n}.${i}` })));
-  const navHtml = LOCAL ? `<div class="card"><h2>Navigationsaufgaben</h2>${partBar("Teilaufgaben", navQs)}</div>
-    <div class="card"><h2>Knoten</h2>${partBar("Verwendungszwecke", KNOTEN)}</div>` : "";
+  const navHtml = LOCAL ? `<div class="card"><h2>Navigationsaufgaben</h2>${partBar("Teilaufgaben", navQs)}</div>` : "";
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);

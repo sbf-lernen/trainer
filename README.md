@@ -35,10 +35,6 @@ auch, solange der Browser lokale Bilder lädt.)
   Zur Orientierung lässt sich der betreffende Kartenbereich als eingebettete
   OpenSeaMap anzeigen (benötigt Internet; die D49 selbst ist BSH-Material und
   darf hier nicht eingebettet werden).
-- **Knoten (Praxis)** *(nur lokal)*: die 10 Prüfungsknoten als Lernkarten — Bild ansehen,
-  Knoten mit der Leine stecken, Verwendungszweck aufsagen, Lösung aufdecken
-  und selbst bewerten. Knotenbilder von Wikimedia Commons (Public Domain bzw.
-  CC BY/CC BY-SA, Nachweis jeweils unter dem Bild verlinkt).
 - **Statistik**: Fortschritt pro Lernstapel, Tagesbilanz mit Lern-Streak,
   Problemfragen, Prüfungshistorie.
 - Fortschritt wird lokal im Browser gespeichert (localStorage), keine
@@ -48,16 +44,15 @@ Im amtlichen Katalog ist immer Antwort a die richtige — das Tool mischt die
 Antwortpositionen deshalb bei jeder Anzeige neu. Die Alt-Texte der amtlichen
 Bilder verraten oft die Lösung und werden darum nicht angezeigt.
 
-**Nicht abgedeckt:** die Manöver der praktischen Prüfung — und das
-tatsächliche Binden der Knoten übt man mit einer Leine in der Hand.
+**Nicht abgedeckt:** Knoten und die praktische Prüfung.
 
 ## Öffentlich vs. lokal
 
-Die Module Navigationsaufgaben und Knoten erscheinen nur, wenn der Trainer
-lokal läuft (`localhost` oder direkt als Datei geöffnet) — auf der
-veröffentlichten GitHub-Pages-Seite sind sie ausgeblendet. Damit macht die
-öffentliche Seite keinerlei Anfragen an fremde Server (die OpenSeaMap-Karte
-der Navigationsaufgaben würde sonst beim Öffnen Leaflet vom CDN und
+Die Navigationsaufgaben erscheinen nur, wenn der Trainer lokal läuft
+(`localhost` oder direkt als Datei geöffnet) — auf der veröffentlichten
+GitHub-Pages-Seite sind sie ausgeblendet. Damit macht die öffentliche Seite
+keinerlei Anfragen an fremde Server (die OpenSeaMap-Karte der
+Navigationsaufgaben würde sonst beim Öffnen Leaflet vom CDN und
 Kartenkacheln von OpenStreetMap/OpenSeaMap laden).
 
 ## Weitergeben
@@ -85,6 +80,6 @@ und schreibt `data.js` sowie neue Bilder nach `images/`.
 
 - `index.html` — die komplette App (Vanilla JS, keine Abhängigkeiten)
 - `data.js` — alle 466 Fragen und 15 Navigationsaufgaben als JS-Objekt; `a[0]` ist jeweils die richtige Antwort
-- `images/` — 159 Abbildungen (Schifffahrtszeichen, Schallsignale, Betonnung, Knoten …)
+- `images/` — 150 Abbildungen (Schifffahrtszeichen, Schallsignale, Betonnung …)
 - `scripts/update_catalog.py` — Crawler/Parser für die ELWIS-Seiten
 - `scripts/build_single_file.py` — baut die verschickbare Einzeldatei nach `dist/`
